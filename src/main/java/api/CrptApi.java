@@ -1,8 +1,5 @@
 package api;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -24,14 +21,14 @@ import java.util.concurrent.TimeUnit;
 public class CrptApi {
 
     private final static String URL = "https://ismp.crpt.ru/api/v3/lk/documents/create";
-    private final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    private final String STRING_FORMAT = "yyyy-MM-dd";
+    private final DateFormat FORMAT = new SimpleDateFormat(STRING_FORMAT);
 
     private final int requestLimit;
     private int requests = 0;
     private final long timeInterval;
-    private final HttpClient httpClient;
-    private final Gson gson;
-    private final GsonBuilder builder;
+    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final Gson gson = new GsonBuilder().setDateFormat(STRING_FORMAT).create();
 
     public CrptApi(TimeUnit timeUnit, int requestLimit) {
         this.timeInterval = timeUnit.toMillis(1);
@@ -40,21 +37,16 @@ public class CrptApi {
         } else {
             throw new IllegalArgumentException("Значение должно быть больше 0");
         }
-        this.httpClient = HttpClient.newHttpClient();
-        this.builder = new GsonBuilder();
-        this.gson = builder.create();;
     }
 
     @Data
     @RequiredArgsConstructor
     public class Product {
         String certificate_document;
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
         Date certificate_document_date;
         String certificate_document_number;
         String owner_inn;
         String producer_inn;
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
         Date production_date;
         String tnved_code;
         String uit_code;
@@ -78,11 +70,9 @@ public class CrptApi {
         String owner_inn;
         String participant_inn;
         String producer_inn;
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
         Date production_date;
         String production_type;
         ArrayList<Product> products = new ArrayList<>();
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
         Date reg_date;
         String reg_number;
     }
@@ -165,6 +155,10 @@ public class CrptApi {
         return result;
     }
 
+    public String getDocJson(Doc doc) {
+        return gson.toJson(doc);
+    }
+
     //401 Unauthorized Error («отказ в доступе»)
     public synchronized void httpRequest(String Doc, String signature) {
         //проверка: ограничение на количество запросов
@@ -227,10 +221,10 @@ public class CrptApi {
         Doc doc = crptApi.addDocJson(docJson);
         String signature = "Signature";
 
-        ObjectMapper mapper = new ObjectMapper();
         try {
             //проверка на создание json из документа
-            String docToJsonTest = mapper.writeValueAsString(doc);
+            String docToJsonTest = crptApi.getDocJson(doc);
+
             //осмотр документа в консоли
             System.out.println(docToJsonTest);
             //отправка документа на сервер
