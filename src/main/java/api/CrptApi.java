@@ -1,5 +1,6 @@
 package api;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -12,6 +13,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -20,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 public class CrptApi {
 
     private final static String URL = "https://ismp.crpt.ru/api/v3/lk/documents/create";
+    private final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
     private final int requestLimit;
     private int requests = 0;
@@ -44,10 +48,12 @@ public class CrptApi {
     @RequiredArgsConstructor
     public class Product {
         String certificate_document;
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
         Date certificate_document_date;
         String certificate_document_number;
         String owner_inn;
         String producer_inn;
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
         Date production_date;
         String tnved_code;
         String uit_code;
@@ -71,9 +77,11 @@ public class CrptApi {
         String owner_inn;
         String participant_inn;
         String producer_inn;
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
         Date production_date;
         String production_type;
         ArrayList<Product> proucts = new ArrayList<>();
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
         Date reg_date;
         String reg_number;
     }
@@ -124,7 +132,7 @@ public class CrptApi {
             result.setProducer_inn(null);
         }
         try {
-            result.setProduction_date(new Date(jsonObject.get("production_date").getAsJsonObject().get("date").getAsLong()));
+            result.setProduction_date(FORMAT.parse(jsonObject.get("production_date").getAsString()));
         } catch (Exception e) {
             result.setProduction_date(null);
         }
@@ -134,7 +142,7 @@ public class CrptApi {
             result.setProduction_type(null);
         }
         try {
-            result.setReg_date(new Date(jsonObject.get("reg_date").getAsJsonObject().get("date").getAsLong()));
+            result.setReg_date(FORMAT.parse(jsonObject.get("production_date").getAsString()));
         } catch (Exception e) {
             result.setReg_date(null);
         }
