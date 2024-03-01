@@ -2,6 +2,7 @@ package api;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -80,7 +81,7 @@ public class CrptApi {
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
         Date production_date;
         String production_type;
-        ArrayList<Product> proucts = new ArrayList<>();
+        ArrayList<Product> products = new ArrayList<>();
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
         Date reg_date;
         String reg_number;
@@ -157,8 +158,8 @@ public class CrptApi {
             }
         } catch (Exception ignored) {}
         try {
-            for(JsonElement jsonElement : jsonObject.get("proucts").getAsJsonArray()) {
-                result.getProucts().add(gson.fromJson(jsonElement.toString(), Product.class));
+            for(JsonElement jsonElement : jsonObject.get("products").getAsJsonArray()) {
+                result.getProducts().add(gson.fromJson(jsonElement.toString(), Product.class));
             }
         } catch (Exception ignored) {}
         return result;
