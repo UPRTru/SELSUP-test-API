@@ -7,10 +7,14 @@ import com.google.gson.JsonObject;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
+import java.io.FileInputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -160,7 +164,7 @@ public class CrptApi {
         return gson.toJson(doc);
     }
 
-    public void httpRequest(String Doc, String signature) {
+    public void httpRequest(String Doc, String signature, PrivateKey privateKey) {
         while (requests.get() >= requestLimit) {
             try {
                 //ожидание места для новых запросов
@@ -173,11 +177,12 @@ public class CrptApi {
         try {
             //после запроса счетчик сбрасывается на 1
             requests.getAndDecrement();
-            
+
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(URL))
                     .header("Signature", signature)
                     .POST(HttpRequest.BodyPublishers.ofString(Doc))
+                    .POST((HttpRequest.BodyPublisher) privateKey)
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
@@ -224,8 +229,15 @@ public class CrptApi {
             String docToJsonTest = crptApi.getDocJson(doc);
             //осмотр документа в консоли
             System.out.println(docToJsonTest);
+
+            //эл. подпись
+            KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            keyStore.load(new FileInputStream("sender_keystore.p12"), "changeit".toCharArray());
+            PrivateKey privateKey =
+                    (PrivateKey) keyStore.getKey("senderKeyPair", "changeit".toCharArray());
+
             //отправка документа на сервер
-            crptApi.httpRequest(docToJsonTest, signature);
+            crptApi.httpRequest(docToJsonTest, signature, privateKey);
         } catch (Exception e) {
             System.out.println(e);
         }
