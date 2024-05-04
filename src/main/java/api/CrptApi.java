@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class CrptApi {
 
@@ -25,7 +26,7 @@ public class CrptApi {
     private final DateFormat FORMAT = new SimpleDateFormat(STRING_FORMAT);
 
     private final int requestLimit;
-    private int requests = 0;
+    private AtomicInteger requests = new AtomicInteger(0);
     private final long timeInterval;
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final Gson gson = new GsonBuilder().setDateFormat(STRING_FORMAT).create();
@@ -159,35 +160,32 @@ public class CrptApi {
         return gson.toJson(doc);
     }
 
-    //401 Unauthorized Error («отказ в доступе»)
-    public synchronized void httpRequest(String Doc, String signature) {
-        //проверка: ограничение на количество запросов
-        if (requests < requestLimit) {
-            requests++;
-            try {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(URL))
-                        .header("Signature", signature)
-                        .POST(HttpRequest.BodyPublishers.ofString(Doc))
-                        .build();
-                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-                System.out.println(response.statusCode());
-                //после запроса счетчик сбрасывается на 1
-                requests--;
-            } catch (Exception e) {
-                //после запроса счетчик сбрасывается на 1
-                requests--;
-                e.printStackTrace();
-            }
-        } else {
+    public void httpRequest(String Doc, String signature) {
+        while (requests.get() >= requestLimit) {
             try {
                 //ожидание места для новых запросов
                 Thread.sleep(timeInterval);
-                httpRequest(Doc, signature);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        }
+        requests.getAndIncrement();
+        try {
+            //после запроса счетчик сбрасывается на 1
+            requests.getAndDecrement();
+            
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(URL))
+                    .header("Signature", signature)
+                    .POST(HttpRequest.BodyPublishers.ofString(Doc))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            System.out.println(response.statusCode());
+        } catch (Exception e) {
+            //после запроса счетчик сбрасывается на 1
+            requests.getAndDecrement();
+            e.printStackTrace();
         }
     }
 
@@ -224,7 +222,6 @@ public class CrptApi {
         try {
             //проверка на создание json из документа
             String docToJsonTest = crptApi.getDocJson(doc);
-
             //осмотр документа в консоли
             System.out.println(docToJsonTest);
             //отправка документа на сервер
